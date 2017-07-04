@@ -62,7 +62,7 @@
                 Mention {{forloop.counter}} / {{num_mentions}}
 
                 {% if is_labeled %}
-                    {% include "yelp/labelresult.html" with labelresult=candidates %}
+                    {% include "wechat/labelresult.html" with labelresult=candidates %}
                 {% else %}
 
                 <div class="row div-main-label" id="div-main-label-{{ mention.mention_id }}">
@@ -109,11 +109,10 @@
 
                     <div class="tab-content candidates-tab">
                         <div id="gen-{{ mention.mention_id }}" class="tab-pane fade in active">
-                            {{forloop.counter}}
-                            <!--{% include "yelp/candidates.html" with mention_id=mention.mention_id candidate_type="gen" %}-->
+                            {% include "wechat/candidates.html" with mention_id=mention.mention_id candidate_type="gen" %}
                         </div>
                         <div id="search-{{ mention.mention_id }}" class="tab-pane fade">
-                            <!--{% include "yelp/searchcandidates.html" %}-->
+                            {{forloop.counter}}
                         </div>
                     </div>
                 </div>
