@@ -1,0 +1,119 @@
+body {
+    font-size: 15px;
+}
+
+.span-key {
+    color: black;
+}
+
+.span-value {
+    color: blue;
+}
+
+.radio-inline {
+    font-size: 17px;
+    font-weight: bold;
+}
+
+.span-mention {
+    background-color: powderblue;
+    cursor: hand;
+}
+
+.span-mention-labeled {
+    background-color: lightgreen;
+}
+
+#mention-span-0 {
+    background-color: #FFFF55;
+}
+
+.div-candidates {
+    display: none;
+}
+
+.div-link {
+    margin-top: 5px;
+}
+
+.div-label-result {
+    background-color: #eee;
+    padding: 5px;
+}
+
+.div-rev-control {
+    margin-right: 20px;
+}
+
+.div-checkbox {
+    margin-right: 20px;
+}
+
+.div-radio-nolink {
+    border-bottom: solid 1px #ccc;
+    padding: 0px;
+}
+
+.div-search-row {
+    margin-bottom: 5px;
+}
+
+.candidates-tab {
+    margin: 5px;
+}
+
+.div-review-text {
+    height: 400px;
+    overflow-y: scroll;
+    margin-top: 5px;
+    margin-bottom: 10px;
+    padding: 8px;
+    background-color: #eee;
+}
+
+.div-candidate-row {
+    background-color: lightblue;
+    margin-bottom: 5px;
+}
+
+.div-biz-radio {
+    float: right;
+    width: 50px;
+}
+
+.div-biz-detail {
+    cursor: hand;
+    padding: 5px;
+}
+
+#custom-search-input{
+    padding: 3px;
+    border: solid 1px #E4E4E4;
+    border-radius: 6px;
+    background-color: #fff;
+}
+
+#custom-search-input input{
+    border: 0;
+    box-shadow: none;
+}
+
+#custom-search-input button{
+    margin: 2px 0 0 0;
+    background: none;
+    box-shadow: none;
+    border: 0;
+    color: #666666;
+    padding: 0 8px 0 10px;
+    border-left: solid 1px #ccc;
+}
+
+#custom-search-input button:hover{
+    border: 0;
+    box-shadow: none;
+    border-left: solid 1px #ccc;
+}
+
+#custom-search-input .glyphicon-search{
+    font-size: 23px;
+}
