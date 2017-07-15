@@ -16,10 +16,12 @@ def show_article(request, article_idx):
     article_id, mentions = articledata.get_article_id_mentions(article_idx)
     # print 'mentions', mentions
     article_info = articledata.get_article_info(article_id)
-    article_text = article_info['text']
-    highlighted_article = articledata.highlight_mentions(article_text, mentions, [])
+    # article_text = article_info['text']
+    # highlighted_article = articledata.highlight_mentions(article_text, mentions, [])
+    # highlighted_article = '<br>'.join(article_info['contents'])
+    highlighted_article = articledata.highlight_mentions_para(article_info['contents'], mentions, [])
 
-    account_id = article_info['bizid']
+    account_id = article_info['account_id']
 
     context = dict()
     context['username'] = 'hldai'

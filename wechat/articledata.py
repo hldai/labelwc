@@ -49,7 +49,7 @@ def get_candidates_of_mentions(mentions):
 
     mention_candidates = list()
     for m in mentions:
-        data = json.dumps({'query': 'candidates', 'name_str': m.name_str})
+        data = json.dumps({'query': 'candidates', 'name_str': m['name_str']})
         res = __query_wechat_dispatcher(data)
         # print res
         tup = (m, False, res['candidates'])
@@ -60,8 +60,8 @@ def get_candidates_of_mentions(mentions):
 def get_article_id_mentions(article_idx):
     data = json.dumps({'query': 'article', 'article_idx': article_idx})
     res = __query_wechat_dispatcher(data)
-    mention_dicts = res['mentions']
-    mentions = [Mention.from_dict(mdict) for mdict in mention_dicts]
+    mentions = res['mentions']
+    # mentions = [Mention.from_dict(mdict) for mdict in mention_dicts]
     return res['article_id'], mentions
 
 
@@ -97,3 +97,53 @@ def highlight_mentions(rev_text, mentions, label_results):
 
     new_text += rev_text[last_pos:]
     return new_text.replace('\n', '<br/>')
+
+
+def __paragraph_mention_dict(mentions):
+    pidx_mention_dict = dict()
+    for m in mentions:
+        para_idx = m['para_idx']
+        cur_para_mentions = pidx_mention_dict.get(para_idx, list())
+        if not cur_para_mentions:
+            pidx_mention_dict[para_idx] = cur_para_mentions
+        cur_para_mentions.append(m)
+    return pidx_mention_dict
+
+
+def __highlight_mentions_in_text(mentions, text, label_results, start_mention_idx):
+    new_text = u''
+    last_pos = 0
+    for i, m in enumerate(mentions):
+        mention_idx = i + start_mention_idx
+        span_class = 'span-mention'
+        mention_id = m['mention_id']
+        if mention_id in label_results:
+            span_class += ' span-mention-labeled'
+        span_attrs = 'id="mention-span-%d" class="%s" onclick="mentionClicked(%d, \'%s\')' % (
+            mention_idx, span_class, mention_idx, mention_id)
+        left_pos, right_pos = m['span']
+        new_text += u'%s<span %s">%s</span>' % (text[last_pos:left_pos], span_attrs,
+                                                text[left_pos:right_pos + 1])
+        last_pos = right_pos + 1
+
+    new_text += text[last_pos:]
+    return new_text.replace('\n', '<br/>')
+
+
+def highlight_mentions_para(contents, mentions, label_results):
+    disp_text = u''
+    pidx_mention_dict = __paragraph_mention_dict(mentions)
+    start_mention_idx = 0
+    for i, content in enumerate(contents):
+        if disp_text:
+            disp_text += '<br>'
+
+        mentions = pidx_mention_dict.get(i, None)
+        if not mentions:
+            disp_text += content
+            continue
+
+        highlighted_text = __highlight_mentions_in_text(mentions, content, label_results, start_mention_idx)
+        start_mention_idx += len(mentions)
+        disp_text += highlighted_text
+    return disp_text
