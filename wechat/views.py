@@ -16,6 +16,7 @@ def show_article(request, article_idx):
     article_id, mentions = articledata.get_article_id_mentions(article_idx)
     # print 'mentions', mentions
     article_info = articledata.get_article_info(article_id)
+    print article_id, len(article_info['contents']), 'paragraphs'
     # article_text = article_info['text']
     # highlighted_article = articledata.highlight_mentions(article_text, mentions, [])
     # highlighted_article = '<br>'.join(article_info['contents'])
@@ -44,3 +45,19 @@ def label(request, article_idx):
     # return HttpResponse('OK' + rev_idx)
     # print time() - tbeg
     return HttpResponseRedirect(reverse('wechat:article', args=(article_idx,)))
+
+
+def search_candidates(request):
+    mention_id = request.POST['mention_id']
+    qstr = request.POST['query_str']
+    # reviewed_city = request.POST['reviewed_biz_city']
+    candidates = articledata.search_candidates(qstr)
+    # print candidates
+    context = {
+        'mention_id': mention_id,
+        'candidates': candidates,
+        "candidate_type": "search"
+    }
+    return render(request, 'wechat/candidates.html', context)
+
+

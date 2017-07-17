@@ -1,0 +1,16 @@
+
+<div class="row div-search-row">
+    <div class="col-md-6">
+        <input type="text" class="form-control input-md input-search-account" placeholder="Business Name"
+               id="input-query-str-{{mention.mention_id}}"/>
+    </div>
+    <button class="btn btn-default" type="button" id="btn-search-{{mention.mention_id}}"
+            onclick="showSearchResult('{{mention.mention_id}}', '{% url 'wechat:search' %}', '{{csrf_token}}')">
+        <!--<i class="glyphicon glyphicon-search"></i>-->
+        Search
+    </button>
+</div>
+
+<div id="search-results-{{mention.mention_id}}">
+
+</div>

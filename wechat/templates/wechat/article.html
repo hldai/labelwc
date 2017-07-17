@@ -112,7 +112,7 @@
                             {% include "wechat/candidates.html" with mention_id=mention.mention_id candidate_type="gen" %}
                         </div>
                         <div id="search-{{ mention.mention_id }}" class="tab-pane fade">
-                            {{forloop.counter}}
+                            {% include "wechat/searchcandidates.html" %}
                         </div>
                     </div>
                 </div>

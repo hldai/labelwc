@@ -147,3 +147,9 @@ def highlight_mentions_para(contents, mentions, label_results):
         start_mention_idx += len(mentions)
         disp_text += highlighted_text
     return disp_text
+
+
+def search_candidates(qstr):
+    data = json.dumps({'query': 'candidates', 'name_str': qstr})
+    res = __query_wechat_dispatcher(data)
+    return res['candidates']
