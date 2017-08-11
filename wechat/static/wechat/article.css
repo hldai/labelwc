@@ -28,6 +28,10 @@ body {
     background-color: #FFFF55;
 }
 
+.div-article-title {
+    text-align: center;
+}
+
 .div-candidates {
     display: none;
 }

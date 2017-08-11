@@ -29,12 +29,14 @@
 
         <div class="row">
             <div class="pull-right div-rev-control">
-                <a href="{% url 'wechat:article' prev_article_idx %}" class="btn btn-success">Prev Article</a>
-                <a href="{% url 'wechat:article' next_article_idx %}" class="btn btn-success">Next Article</a>
+                <a href="{% url 'wechat:article' username prev_article_idx %}" class="btn btn-success">Prev Article</a>
+                <a href="{% url 'wechat:article' username next_article_idx %}" class="btn btn-success">Next Article</a>
             </div>
         </div>
 
         {% include "wechat/accountdetail.html" %}
+
+        <div class="div-article-title">{{article_title}}</div>
 
         <div class="div-review-text">
         {{ highlighted_article |safe }}
@@ -70,11 +72,6 @@
                         <!--<label class="radio-inline" onclick="checkRadio('{{ mention.mention_id }}', 'radio-gen-{{ mention.mention_id }}-1')">-->
                         <label class="radio-inline" onclick="linkChecked('{{ mention.mention_id }}')">
                           <input type="radio" id="radio-link-{{ mention.mention_id }}" name="main-label-{{ mention.mention_id }}" value="link"> Link
-                        </label>
-                    </div>
-                    <div class="col-md-3 div-radio-nolink" id="div-radio-fran">
-                        <label class="radio-inline" onclick="nolinkChecked('{{ mention.mention_id }}')">
-                        <input type="radio" name="main-label-{{ mention.mention_id }}" value="fran"> Franchise
                         </label>
                     </div>
                     <div class="col-md-3 div-radio-nolink" id="div-radio-unlinkable">

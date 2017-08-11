@@ -3,9 +3,12 @@
 import json
 import socket
 
+from django.shortcuts import get_object_or_404
+
 from elasticsearch import Elasticsearch
 
 from mention import Mention
+from models import LabelResultWe
 
 REV_DISPATCH_HOST, REV_DISPATCH_PORT = 'localhost', 9741
 DATA_END_STR = 'DHLDHLDHLEND'
@@ -43,26 +46,57 @@ def __query_wechat_dispatcher(data):
     return received
 
 
-def get_candidates_of_mentions(mentions):
+def get_user_num_articles(username):
+    data = json.dumps({'query': 'user_num_articles', 'username': username})
+    res = __query_wechat_dispatcher(data)
+    return res['num_articles']
+
+
+def get_label_results(mentions, username):
+    label_result_dict = dict()
+    for m in mentions:
+        try:
+            mention_id = m['mention_id']
+            lr = LabelResultWe.objects.get(mention_id=mention_id, username=username)
+            label_result_dict[mention_id] = lr
+        except LabelResultWe.DoesNotExist:
+            continue
+    return label_result_dict
+
+
+def get_candidates_of_mentions(mentions, label_results):
     if not mentions:
         return None
 
     mention_candidates = list()
     for m in mentions:
-        data = json.dumps({'query': 'candidates', 'name_str': m['name_str']})
-        res = __query_wechat_dispatcher(data)
-        # print res
-        tup = (m, False, res['candidates'])
-        mention_candidates.append(tup)
+        mention_id = m['mention_id']
+        # print mention_id
+        lr = label_results.get(mention_id, None)
+        if lr:
+            lr_disp = dict()
+            lr_disp['cur_state'] = lr.cur_state
+            if lr.cur_state == 3:
+                lr_disp['account'] = get_account_info(lr.account_id)
+            # lr_disp['is_franchise'] = lr.is_franchise
+            lr_disp['is_wrong_span'] = lr.is_wrong_span
+            tup = (m, True, lr_disp)
+            mention_candidates.append(tup)
+        else:
+            data = json.dumps({'query': 'candidates', 'name_str': m['name_str']})
+            res = __query_wechat_dispatcher(data)
+            # print res
+            tup = (m, False, res['candidates'])
+            mention_candidates.append(tup)
     return mention_candidates
 
 
-def get_article_id_mentions(article_idx):
-    data = json.dumps({'query': 'article', 'article_idx': article_idx})
+def get_article_id_mentions(username, expected_article_idx):
+    data = json.dumps({'query': 'article', 'username': username, 'article_idx': expected_article_idx})
     res = __query_wechat_dispatcher(data)
     mentions = res['mentions']
     # mentions = [Mention.from_dict(mdict) for mdict in mention_dicts]
-    return res['article_id'], mentions
+    return res['corrected_idx'], res['article_id'], mentions
 
 
 def get_account_name(account_id):
@@ -101,6 +135,8 @@ def highlight_mentions(rev_text, mentions, label_results):
 
 def __paragraph_mention_dict(mentions):
     pidx_mention_dict = dict()
+    if not mentions:
+        return pidx_mention_dict
     for m in mentions:
         para_idx = m['para_idx']
         cur_para_mentions = pidx_mention_dict.get(para_idx, list())
@@ -153,3 +189,15 @@ def search_candidates(qstr):
     data = json.dumps({'query': 'candidates', 'name_str': qstr})
     res = __query_wechat_dispatcher(data)
     return res['candidates']
+
+
+def update_label_result(username, post_data):
+    LabelResultWe.update_label_result(username, post_data)
+
+
+def delete_label_result(mention_id, username):
+    # lr = LabelResult.objects.get(mention_id=mention_id, username=username)
+    lr = get_object_or_404(LabelResultWe, mention_id=mention_id, username=username)
+    lr.delete()
+
+    # user_num_mentions[username] -= 1

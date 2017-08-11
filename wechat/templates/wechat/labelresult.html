@@ -9,7 +9,7 @@
     {% if labelresult.is_wrong_span %}
     <i> Wrong Span </i> <br>
     {% endif %}
-    {% include "yelp/businessdetail.html" with biz=labelresult.biz %}
+    {% include "wechat/accountdetail.html" with account=labelresult.account %}
 {% elif labelresult.cur_state == 4 %}
     <i> Franchise </i>
 {% else %}
@@ -17,6 +17,6 @@
 {% endif %}
     <div>
     <!--<button type="button" class="btn btn-warning">Delete</button>-->
-        <a href="{% url 'yelp:deletelabel' user_rev_idx mention.mention_id %}" class="btn btn-warning">Delete</a>
+        <a href="{% url 'wechat:deletelabel' user_article_idx mention.mention_id %}" class="btn btn-warning">Delete</a>
     </div>
 </div>

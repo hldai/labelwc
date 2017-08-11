@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>User Info</title>
+</head>
+<body>
+
+<div style="margin: 20px">
+    Logged in as:&nbsp; {{ username }} &nbsp;&nbsp; <a href="{% url 'wechat:logout' %}">Log out</a>
+    <br>
+    <hr>
+    <div>
+    Number of articles: {{num_articles}}
+    <br>
+    Number of mentions: {{num_articles}}
+    </div>
+    <br>
+    <hr>
+<a href="{% url 'wechat:article' username label_article_idx %}">Start Labeling</a>
+
+</div>
+
+
+</body>
+</html>
