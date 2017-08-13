@@ -33,7 +33,7 @@ class LabelResultWe(models.Model):
         success_cnt = 0
         for mention_id, val in mention_labels_main.iteritems():
             # is_franchise = 0
-            print mention_id, val
+            # print mention_id, val
             is_wrong_span = 0
             try:
                 lr = LabelResultWe.objects.get(mention_id=mention_id, username=username)
@@ -50,8 +50,8 @@ class LabelResultWe(models.Model):
                 elif val == 'link':
                     curstate = 3
                     link_key = 'link-label-' + mention_id
-                    print link_key
-                    print post_data
+                    # print link_key
+                    # print post_data
                     account_id = post_data.get(link_key, None)
                     if not account_id:
                         print 'dst account id not found'

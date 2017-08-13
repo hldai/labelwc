@@ -36,19 +36,20 @@ def show_article(request, username, article_idx):
     # article_text = article_info['text']
     # highlighted_article = articledata.highlight_mentions(article_text, mentions, [])
     # highlighted_article = '<br>'.join(article_info['contents'])
-    highlighted_article = articledata.highlight_mentions_para(article_info['contents'], mentions, [])
+    label_results = articledata.get_label_results(mentions, request.user.username)
+    highlighted_article = articledata.highlight_mentions_para(article_info['contents'], mentions, label_results)
 
     account_id = article_info['account_id']
 
     context = dict()
     context['username'] = username
+    context['num_mentions'] = len(mentions)
     context['article_title'] = article_info['title']
     context['account'] = articledata.get_account_info(account_id)
     context['highlighted_article'] = highlighted_article
     context['user_article_idx'] = article_idx
     context['prev_article_idx'] = article_idx - 1 if article_idx > 1 else 1
     context['next_article_idx'] = article_idx + 1
-    label_results = articledata.get_label_results(mentions, request.user.username)
     context['mention_candidates'] = articledata.get_candidates_of_mentions(mentions, label_results)
     return render(request, 'wechat/article.html', context)
 

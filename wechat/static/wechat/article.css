@@ -85,7 +85,8 @@ body {
     width: 50px;
 }
 
-.div-biz-detail {
+.div-account-detail {
+    font-size: 16px;
     cursor: hand;
     padding: 5px;
 }

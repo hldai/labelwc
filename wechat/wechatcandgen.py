@@ -1,69 +1,14 @@
 # -*- coding: utf-8 -*-
 import time
-from utils import seg_cn
-from mention import Mention
 from elasticsearch import Elasticsearch
+from py4j.java_gateway import JavaGateway
+
+from mention import Mention
+from queryexp import QueryExpansion
 
 es_url = 'localhost:9200'
 index_name = 'wechat'
 nickname_doc_type = 'nickname'
-
-
-def __get_chars(s):
-    chars = set()
-    for ch in s:
-        chars.add(ch)
-    return chars
-
-
-def __build_inverted_index(name_file):
-    char_name_dict = dict()
-    f = open(name_file, 'r')
-    for i, line in enumerate(f):
-        name = line.strip().decode('utf-8')
-        chars = __get_chars(name)
-
-        for ch in chars:
-            name_list = char_name_dict.get(ch, None)
-            if not name_list:
-                char_name_dict[ch] = name_list = list()
-            name_list.append(name)
-    f.close()
-
-    return char_name_dict
-
-
-def __intersection(name_lists):
-    if not name_lists:
-        return None
-
-    r = list()
-    for name in name_lists[0]:
-        exist_in_all = True
-        for name_list in name_lists[1:]:
-            if name not in name_list:
-                exist_in_all = False
-                break
-        if exist_in_all:
-            r.append(name)
-    return r
-
-
-def __find_substr(q, char_name_dict):
-    name_lists = list()
-    chars = __get_chars(q)
-    for ch in chars:
-        names = char_name_dict.get(ch, None)
-        if names:
-            name_lists.append(names)
-
-    names = __intersection(name_lists)
-    if not names:
-        return
-
-    for name in names:
-        if q in name:
-            print name
 
 
 def __add_alias_to_dict(alias_dict, name, alias):
@@ -102,51 +47,43 @@ def __load_acronym_expansion_file(acronym_expansion_file):
     return acr_exp_dict
 
 
-def load_strs_file(words_file):
-    words = set()
-    f = open(words_file, 'r')
-    for line in f:
-        words.add(line.strip().decode('utf-8'))
-    f.close()
-    return words
-
-
-def load_freq_acronym_name(acronym_name_cnt_file, exclude_strs):
-    # exclude_words = __load_strs_file(expansion_exclude_words_file)
-    # exclude_words = set()
-
+def load_acronym_to_name(acronym_name_file, exclude_strs):
     acr_name_dict = dict()
-    f = open(acronym_name_cnt_file, 'r')
-    line = f.next()
-    flg = True
-    while flg:
-        vals = line.strip().split('\t')
-        max_cnt = int(vals[2])
-        acr = vals[0].decode('utf-8')
-        name_max = vals[1].decode('utf-8')
+    f = open(acronym_name_file, 'r')
+    for line in f:
+        line = line.strip().decode('utf-8')
+        acr, name, _ = line.split('\t')
 
-        while True:
-            try:
-                line = f.next()
-                vals = line.strip().split('\t')
-                if vals[0].decode('utf-8') != acr:
-                    break
-                cnt = int(vals[2])
-                if cnt > max_cnt:
-                    name_max = vals[1].decode('utf-8')
-            except StopIteration:
-                flg = False
-                break
-
-        if acr in exclude_strs:
+        if exclude_strs and acr in exclude_strs:
             continue
 
-        acr_name_dict[acr] = name_max
+        acr_name_dict[acr] = name
         # print acr, name_max
 
     f.close()
 
     return acr_name_dict
+
+
+def load_name_to_acronym(acronym_name_file):
+    name_acr_cnt_dict = dict()
+    f = open(acronym_name_file, 'r')
+    for line in f:
+        line = line.strip().decode('utf-8')
+        acr, name, cnt = line.split('\t')
+        cnt = int(cnt)
+
+        tup = name_acr_cnt_dict.get(name, None)
+        if not tup or tup[1] < cnt:
+            name_acr_cnt_dict[name] = (acr, cnt)
+        # print acr, name_max
+    f.close()
+
+    name_acr_dict = dict()
+    for name, (acr, cnt) in name_acr_cnt_dict.iteritems():
+        name_acr_dict[name] = acr
+
+    return name_acr_dict
 
 
 def expand_word(word, acr_name_dict):
@@ -193,52 +130,43 @@ def expand_name_by_words(name_words, acr_name_dict, exclude_strs):
     return name_exp
 
 
-def __find_substr_test():
-    name_file = 'e:/data/res/wiki/titles.txt'
-    char_name_dict = __build_inverted_index(name_file)
-    __find_substr(u'北大', char_name_dict)
-
-
 class WechatCandGen:
-    def __init__(self, acronym_name_cnt_file, expansion_exclude_strs_file, es_url):
+    def __init__(self, acr_name_file, extra_acr_name_file, expansion_exclude_strs_file,
+                 abbrev_exclude_strs_file, es_url):
         self.es = Elasticsearch([es_url])
-        self.exclude_strs = load_strs_file(expansion_exclude_strs_file)
-        self.acr_name_dict = load_freq_acronym_name(acronym_name_cnt_file, self.exclude_strs)
+
+        gateway = JavaGateway()
+        self.cn_seg_app = gateway.entry_point
+        self.qe = QueryExpansion(acr_name_file, extra_acr_name_file, expansion_exclude_strs_file,
+                                 abbrev_exclude_strs_file, self.cn_seg_app)
 
     def gen_canidates(self, name_str):
-        name_str_seg = seg_cn(name_str)
+        name_str_seg = self.cn_seg_app.segment(name_str)
 
         name_words = name_str_seg.split(' ')
-        name_exp = expand_name_by_words(name_words, self.acr_name_dict, self.exclude_strs)
+        exp_names = self.qe.query_expansion_words(name_words)
 
         # print name_str
         # print name_str_seg
         # print name_exp
 
-        hits_info = self.__match_name_es(name_str_seg)
+        candidates = self.__query_es_for_candidates(name_str_seg)
 
-        cands = list()
-        # res = es.get(index=index_name, id='507b2220716ecdf0e87fa99fe51ec0d7')
-        # print res['_source']['name']
-        # print hits_info['total']
+        for exp_name in exp_names:
+            name_exp_seg = self.cn_seg_app.segment(exp_name)
+            candidates += self.__query_es_for_candidates(name_str_seg)
+
+        return candidates
+
+    def __query_es_for_candidates(self, name_seg):
+        candidates = list()
+        hits_info = self.__match_name_es(name_seg)
         hits = hits_info['hits']
         for hit in hits:
             # print hit['_id'], hit['_score']
             # print hit['_source']['name']
-            cands.append((hit['_id'], hit['_source']['name'], hit['_score']))
-
-        if name_exp != name_str:
-            name_exp_seg = seg_cn(name_exp)
-            hits_info = self.__match_name_es(name_exp_seg)
-            # print hits_info['total']
-            hits = hits_info['hits']
-            for hit in hits:
-                # print hit['_id'], hit['_score']
-                # print hit['_source']['name']
-                cands.append((hit['_id'], hit['_source']['name'], hit['_score']))
-
-        # print
-        return cands
+            candidates.append((hit['_id'], hit['_source']['name'], hit['_score']))
+        return candidates
 
     def __match_name_es(self, name_str):
         qbody = {
@@ -250,30 +178,52 @@ class WechatCandGen:
         return res['hits']
 
 
-def __cand_gen():
-    mentions_file = 'e:/data/wechat/mentions_raw_text.txt'
-    acronym_name_cnt_file = 'e:/data/res/wiki/acronym_name_cnt.txt'
+def __name_abbrev_test():
+    acr_name_file = 'e:/data/res/wiki/acr_name_filter.txt'
+    extra_acr_name_file = 'e:/data/res/wiki/acr_name_man.txt'
+    name_str_file = 'e:/data/wechat/20w/name_strs_stat.txt'
     expansion_exclude_strs_file = 'res/expansion_exclude_strs.txt'
+    abbrev_exclude_strs_file = 'res/abbrev_exclude_strs.txt'
+    dst_file = 'e:/data/wechat/tmp/name_strs_acr.txt'
 
-    wcg = WechatCandGen(acronym_name_cnt_file, expansion_exclude_strs_file, es_url)
+    gateway = JavaGateway()
+    cn_seg_app = gateway.entry_point
+    # print cn_seg_app.segment(u'市卫计委')
 
-    cnt = 0
-    f = open(mentions_file, 'r')
-    while True:
-        m = Mention.fromfile(f)
-        if not m:
-            break
+    qe = QueryExpansion(acr_name_file, extra_acr_name_file, expansion_exclude_strs_file,
+                        abbrev_exclude_strs_file, cn_seg_app)
+    # print qe.expand_name(u'市卫计委')
 
-        wcg.gen_canidates(m.name_str)
+    f = open(name_str_file)
+    fout = open(dst_file, 'wb')
+    for i, line in enumerate(f):
+        vals = line.strip().split('\t')
+        name_str = vals[0].decode('utf-8')
 
-        cnt += 1
-        if cnt == 6:
-            break
+        # name_abr = qe.abbrev_name(name_str)
+        # if name_abr:
+            # print name_str, name_exp
+            # if name_abr.endswith(u'大学'):
+            #     print name_str, name_abr
+            # fout.write((u'%s\t%s\n' % (name_str, name_abr)).encode('utf-8'))
+        exp_names = qe.query_expansion(name_str)
+        if exp_names:
+            fout.write(name_str.encode('utf-8'))
+            for n in exp_names:
+                fout.write((u'\t%s' % n).encode('utf-8'))
+            fout.write('\n')
+
+        if i % 10000 == 0:
+            print i
+        # if i > 10000:
+        #     break
+
     f.close()
+    fout.close()
 
 
 if __name__ == '__main__':
     # __find_substr_test()
     # __name_expansion()
-    __cand_gen()
+    __name_abbrev_test()
     pass
